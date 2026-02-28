@@ -1,5 +1,5 @@
 # 📸 EXIF / XMP / IPTC Okuyucu + AI & Kaynak Analizi
-
+![WebDedik Görsel Metadata Analiz Aracı](https://www.webdedik.com/storage/uploads/banners/exif-metadata-okuyucu-nedir-ai-uretimi-ve-sosyal-medya-kaynagini-tespit-eden-gel.webp)
 Modern, tarayıcı tabanlı bir görsel metadata analiz aracı. EXIF, XMP, IPTC, GPS ve ICC verilerini okur, yapay zekâ üretimi ve sosyal medya kaynak analizi için kanıt tabanlı raporlar üretir.
 
 ## ✨ Özellikler
@@ -176,3 +176,4 @@ Bu proje açık kaynaklıdır. İstediğiniz gibi kullanabilir, değiştirebilir
 ---
 
 **Not**: Bu araç, metadata analizi yapar ve olasılık bazlı sonuçlar üretir. Kesin kaynak/üretim yöntemi bazı durumlarda metadata yoksa doğrulanamaz.
+
