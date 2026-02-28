@@ -1,0 +1,1323 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pro EXIF / XMP / IPTC Okuyucu + Rapor</title>
+  <link rel="icon" type="image/webp" href="logo.webp" />
+  <style>
+    :root{
+      --bg:#0b0f17; --card:#0f172a; --muted:#94a3b8; --text:#e2e8f0;
+      --accent:#60a5fa; --warn:#fbbf24; --bad:#fb7185; --good:#34d399;
+      --border: rgba(148,163,184,.18);
+    }
+    *{box-sizing:border-box}
+    body{margin:0; background:radial-gradient(900px 500px at 20% 0%, rgba(96,165,250,.15), transparent 60%),
+                      radial-gradient(900px 500px at 80% 0%, rgba(52,211,153,.12), transparent 60%),
+                      var(--bg);
+         color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";}
+    header{padding:22px 18px 10px; max-width:1100px; margin:0 auto; text-align:center}
+    .logo-container{display:flex; flex-direction:column; align-items:center; gap:20px; margin-bottom:24px}
+    .logo-main{width:200px; height:200px; object-fit:contain}
+    h1{margin:0 0 6px; font-size:20px; letter-spacing:.2px}
+    .sub{color:var(--muted); font-size:13px; line-height:1.5}
+    main{max-width:1100px; margin:0 auto; padding:14px 18px 30px; display:grid; gap:12px}
+    .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:12px}
+    @media (max-width: 960px){ .grid{grid-template-columns:1fr} }
+    .card{background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+          border:1px solid var(--border); border-radius:16px; padding:14px;
+          box-shadow: 0 10px 30px rgba(0,0,0,.25);}
+    .drop{
+      border:1px dashed rgba(148,163,184,.35); border-radius:14px; padding:14px;
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      background: rgba(255,255,255,.02);
+    }
+    .drop strong{font-size:14px}
+    .drop small{display:block; color:var(--muted); margin-top:4px}
+    .btns{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    button{
+      background: rgba(96,165,250,.12); border:1px solid rgba(96,165,250,.35);
+      color: var(--text); padding:9px 10px; border-radius:12px; cursor:pointer;
+      font-size:13px;
+    }
+    button.secondary{background: rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.18)}
+    button.danger{background: rgba(251,113,133,.10); border:1px solid rgba(251,113,133,.25)}
+    button:disabled{opacity:.5; cursor:not-allowed}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .pill{font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:rgba(255,255,255,.02)}
+    .pill.good{border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.95); background: rgba(52,211,153,.08)}
+    .pill.warn{border-color: rgba(251,191,36,.35); color: rgba(251,191,36,.95); background: rgba(251,191,36,.08)}
+    .pill.bad{border-color: rgba(251,113,133,.35); color: rgba(251,113,133,.95); background: rgba(251,113,133,.08)}
+    .kv{display:grid; grid-template-columns: 1fr 1.4fr; gap:8px; margin-top:10px}
+    .kv div{padding:8px 10px; border:1px solid var(--border); border-radius:12px; background: rgba(255,255,255,.015)}
+    .k{color:var(--muted); font-size:12px}
+    .v{font-size:13px; margin-top:4px; word-break:break-word}
+    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 0}
+    .tab{padding:7px 10px; border-radius:999px; border:1px solid var(--border); cursor:pointer; color:var(--muted); background:rgba(255,255,255,.02); font-size:12px}
+    .tab.active{border-color: rgba(96,165,250,.45); color: var(--text); background: rgba(96,165,250,.10)}
+    pre{margin:10px 0 0; padding:12px; border-radius:14px; border:1px solid var(--border);
+        background: rgba(0,0,0,.28); overflow:auto; font-size:12px; line-height:1.5; color: #dbeafe;
+        max-height:600px; word-wrap:break-word; white-space:pre-wrap}
+    .muted{color:var(--muted); font-size:12px; line-height:1.55}
+    .imgbox{display:grid; grid-template-columns: 140px 1fr; gap:12px; align-items:start}
+    @media (max-width:560px){ .imgbox{grid-template-columns:1fr} }
+    img{width:100%;}
+    .sectionTitle{font-size:13px; color:var(--muted); margin:0 0 8px}
+    .list{margin:0; padding-left:18px; color:var(--text); font-size:13px; line-height:1.55}
+    .list li{margin:6px 0}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    a{color:var(--accent)}
+    .note{margin-top:10px; padding:10px 12px; border-radius:14px; border:1px solid rgba(251,191,36,.25);
+          background: rgba(251,191,36,.06); color: rgba(251,191,36,.95); font-size:12px; line-height:1.6;}
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="logo-container">
+    <img src="logo.webp" alt="Logo" class="logo-main" />
+    <div>
+      <h1>EXIF / XMP / IPTC Okuyucu + Kaynak & Yapay Zekâ Analizi</h1>
+      <div class="sub">
+        Tarayıcıda çalışır (dosya dışarı gönderilmez). EXIF/XMP/IPTC/GPS/ICC verilerini okur, sosyal medya/indirildiği kaynak ve AI üretimi için <b>kanıt tabanlı</b> raporlar üretir.
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="drop" id="drop">
+      <div>
+        <strong>Görseli buraya sürükle bırak</strong>
+        <small>JPG / JPEG / PNG / WebP / HEIC (tarayıcı desteğine bağlı) • Büyük dosyalarda birkaç saniye sürebilir</small>
+      </div>
+      <div class="btns">
+        <input id="file" type="file" accept="image/*" hidden />
+        <button id="pick">Dosya Seç</button>
+        <button class="secondary" id="clear" disabled>Temizle</button>
+        <button class="secondary" id="dlJson" disabled>Rapor JSON İndir</button>
+        <button class="secondary" id="dlHtml" disabled>Rapor HTML İndir</button>
+      </div>
+    </div>
+
+    <div class="note">
+      “Nereden indirildi?” bilgisi çoğu görselde metadata olarak yer almaz. Bu araç, yalnızca dosyanın içindeki etiketlere dayanarak olasılık çıkarır ve hangi etiketlerin ipucu olduğunu listeler.
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <p class="sectionTitle">Önizleme & Özet</p>
+      <div class="imgbox">
+        <img id="preview" alt="" />
+        <div>
+          <div class="row" id="badges"></div>
+          <div class="kv" id="summary"></div>
+          <p class="muted" id="summaryText" style="margin-top:10px"></p>
+        </div>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-tab="report">Rapor</div>
+        <div class="tab" data-tab="signals">Kanıtlar</div>
+        <div class="tab" data-tab="raw">Ham Metadata</div>
+      </div>
+
+      <div id="tab-report">
+        <h3 class="sectionTitle" style="margin-top:12px">Yorum & Bulgular</h3>
+        <ul class="list" id="findings"></ul>
+      </div>
+
+      <div id="tab-signals" style="display:none">
+        <h3 class="sectionTitle" style="margin-top:12px">Hangi alanlar ipucu verdi?</h3>
+        <ul class="list" id="signals"></ul>
+      </div>
+
+      <div id="tab-raw" style="display:none">
+        <h3 class="sectionTitle" style="margin-top:12px">Ham (JSON)</h3>
+        <pre id="raw" class="mono"></pre>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="sectionTitle">Detay Panosu</p>
+
+      <div class="kv" id="detail"></div>
+
+      <h3 class="sectionTitle" style="margin-top:14px">GPS / Konum</h3>
+      <div class="muted" id="gps"></div>
+
+      <h3 class="sectionTitle" style="margin-top:14px">Sosyal Medya / İndirme Kaynağı Olasılığı</h3>
+      <div class="muted" id="provenance"></div>
+
+      <h3 class="sectionTitle" style="margin-top:14px">Yapay Zekâ Üretimi Olasılığı</h3>
+      <div class="muted" id="ai"></div>
+    </section>
+  </div>
+</main>
+
+<script src="exifr.full.js"></script>
+
+<script type="module">
+  // ---- Metadata okuyucu: exifr (EXIF/XMP/IPTC/GPS/ICC)
+  const exifr = window.exifr || window.exifrModule || globalThis.exifr;
+
+  const $ = (id) => document.getElementById(id);
+
+  const ui = {
+    drop: $("drop"),
+    file: $("file"),
+    pick: $("pick"),
+    clear: $("clear"),
+    dlJson: $("dlJson"),
+    dlHtml: $("dlHtml"),
+    preview: $("preview"),
+    badges: $("badges"),
+    summary: $("summary"),
+    summaryText: $("summaryText"),
+    findings: $("findings"),
+    signals: $("signals"),
+    raw: $("raw"),
+    detail: $("detail"),
+    gps: $("gps"),
+    provenance: $("provenance"),
+    ai: $("ai"),
+    tabs: $("tabs"),
+  };
+
+  const state = {
+    file: null,
+    meta: null,
+    report: null,
+  };
+
+  const SOCIAL_SOFTWARE_HINTS = [
+    { name: "Instagram", patterns: [/instagram/i, /ig/i] },
+    { name: "Facebook", patterns: [/facebook/i, /\bfb\b/i] },
+    { name: "WhatsApp", patterns: [/whatsapp/i] },
+    { name: "Telegram", patterns: [/telegram/i] },
+    { name: "Twitter / X", patterns: [/twitter/i, /\bx\b/i] },
+    { name: "TikTok", patterns: [/tiktok/i] },
+    { name: "Snapchat", patterns: [/snapchat/i] },
+    { name: "Discord", patterns: [/discord/i] },
+    { name: "Reddit", patterns: [/reddit/i] },
+    { name: "Google Photos", patterns: [/google photos/i, /gphotos/i] },
+    { name: "iMessage / iOS Share", patterns: [/imessage/i, /ios/i, /apple/i] },
+    { name: "Windows Photos", patterns: [/microsoft photos/i, /windows photos/i] },
+  ];
+
+  const AI_TOOL_HINTS = [
+    { name: "ChatGPT / OpenAI", patterns: [/chatgpt/i, /openai/i, /gpt[- ]?4/i, /gpt[- ]?3/i, /dall[- ]?e/i] },
+    { name: "Google Gemini", patterns: [/gemini/i, /google ai/i, /imagen/i, /google.*generative/i] },
+    { name: "Midjourney", patterns: [/midjourney/i, /mj /i] },
+    { name: "Stable Diffusion", patterns: [/stable diffusion/i, /\bsd\b/i, /automatic1111/i, /comfyui/i, /stability ai/i] },
+    { name: "DALL·E", patterns: [/dall[- ]?e/i] },
+    { name: "Adobe Firefly", patterns: [/firefly/i, /adobe.*ai/i] },
+    { name: "Canva AI", patterns: [/canva/i, /canva.*ai/i] },
+    { name: "Leonardo AI", patterns: [/leonardo/i, /leonardo.*ai/i] },
+    { name: "Runway", patterns: [/runway/i, /runwayml/i] },
+    { name: "Claude / Anthropic", patterns: [/claude/i, /anthropic/i] },
+    { name: "Microsoft Copilot", patterns: [/copilot/i, /bing.*image/i, /microsoft.*ai/i] },
+    { name: "Meta AI", patterns: [/meta.*ai/i, /llama/i, /metamage/i] },
+    { name: "Craiyon / DALL-E Mini", patterns: [/craiyon/i, /dall[- ]?e.*mini/i] },
+    { name: "NightCafe", patterns: [/nightcafe/i, /night.*cafe/i] },
+    { name: "Artbreeder", patterns: [/artbreeder/i] },
+    { name: "DeepAI", patterns: [/deepai/i, /deep.*ai/i] },
+  ];
+
+  function safeStr(v){
+    if (v === undefined || v === null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    try { return JSON.stringify(v); } catch { return String(v); }
+  }
+
+  function pickFirst(obj, keys){
+    for (const k of keys){
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return undefined;
+  }
+
+  function fmtDate(d){
+    if (!d) return "";
+    try{
+      if (d instanceof Date && !Number.isNaN(d.getTime())) return d.toISOString().replace("T"," ").replace("Z"," UTC");
+      // exifr bazen string döndürebilir
+      const dd = new Date(d);
+      if (!Number.isNaN(dd.getTime())) return dd.toISOString().replace("T"," ").replace("Z"," UTC");
+    }catch{}
+    return safeStr(d);
+  }
+
+  function createPill(text, kind=""){
+    const span = document.createElement("span");
+    span.className = `pill ${kind}`.trim();
+    span.textContent = text;
+    return span;
+  }
+
+  function dlBlob(filename, content, type){
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  function setKV(container, items){
+    container.innerHTML = "";
+    for (const {k, v} of items){
+      const cell = document.createElement("div");
+      const kk = document.createElement("div");
+      const vv = document.createElement("div");
+      kk.className = "k"; vv.className = "v";
+      kk.textContent = k;
+      vv.textContent = v ?? "—";
+      cell.appendChild(kk); cell.appendChild(vv);
+      container.appendChild(cell);
+    }
+  }
+
+  function scoreToLabel(score){
+
+    if (score >= 0.60) return {label:"Yüksek", kind:"bad"}; 
+    if (score >= 0.35) return {label:"Orta", kind:"warn"};
+    return {label:"Düşük", kind:"good"};
+  }
+
+  function textMatchesAny(text, patterns){
+    if (!text) return false;
+    return patterns.some((re) => re.test(text));
+  }
+
+  function flattenStrings(meta){
+
+    const out = [];
+    const walk = (x) => {
+      if (x === null || x === undefined) return;
+      if (typeof x === "string") out.push(x);
+      else if (typeof x === "number" || typeof x === "boolean") out.push(String(x));
+      else if (x instanceof Date) out.push(x.toISOString());
+      else if (Array.isArray(x)) x.forEach(walk);
+      else if (typeof x === "object") Object.values(x).forEach(walk);
+    };
+    walk(meta);
+    return out.join("\n");
+  }
+
+  function buildProvenance(meta){
+    const signals = [];
+    const findings = [];
+
+    const software = pickFirst(meta, ["Software", "ProcessingSoftware", "CreatorTool", "Creator", "CreatorToolName", "ApplicationRecord"]);
+    const xmpCreatorTool = pickFirst(meta, ["xmp:CreatorTool", "CreatorTool"]);
+    const modifyDate = pickFirst(meta, ["ModifyDate", "DateTime", "UpdateDate", "MetadataDate", "xmp:ModifyDate"]);
+    const make = pickFirst(meta, ["Make", "Model", "LensModel", "BodySerialNumber"]);
+    const hasCamera = Boolean(make);
+
+    const haystack = (safeStr(software) + "\n" + safeStr(xmpCreatorTool) + "\n" + flattenStrings(meta)).slice(0, 200000);
+
+    const socialHits = [];
+    for (const h of SOCIAL_SOFTWARE_HINTS){
+      if (textMatchesAny(haystack, h.patterns)){
+        socialHits.push(h.name);
+      }
+    }
+    if (socialHits.length){
+      signals.push(`Yazılım/etiket metinlerinde platform izleri: ${socialHits.join(", ")}`);
+      findings.push(`Bu dosya, metadata içeriğindeki metinlere göre ${socialHits.join(", ")} üzerinden geçmiş olabilir.`);
+    }
+
+    const hasGps = Boolean(meta.latitude || meta.longitude || meta.GPSLatitude || meta.GPSLongitude);
+    const keyExif = [
+      "Make","Model","LensModel","DateTimeOriginal","ExposureTime","FNumber","ISO","FocalLength"
+    ];
+    const presentExifCount = keyExif.filter(k => meta[k] !== undefined && meta[k] !== null && meta[k] !== "").length;
+
+    let strippedScore = 0;
+    if (!hasCamera && (software || xmpCreatorTool)) strippedScore += 0.35;
+    if (!hasGps) strippedScore += 0.15;
+    if (presentExifCount <= 1) strippedScore += 0.25;
+    if (String(modifyDate || "").length) strippedScore += 0.10;
+
+    if (strippedScore >= 0.45){
+      signals.push(`EXIF alanları çok sınırlı: kritik kamera alanları sayısı=${presentExifCount}/8, GPS=${hasGps ? "var":"yok"}`);
+      findings.push("Fotoğraf sosyal medya/mesajlaşma uygulaması gibi bir yerden geçmişse, metadata genellikle silinir veya azaltılır. Bu dosyada da metadata kısıtlı görünüyor.");
+    }
+
+    const possibleSource = pickFirst(meta, [
+      "Source", "xmp:Source", "dc:source", "xmpRights:WebStatement", "WebStatement",
+      "URL", "CreatorURL", "xmp:Identifier", "DocumentID", "InstanceID"
+    ]);
+
+    if (possibleSource){
+      signals.push(`Kaynak/kimlik alanı bulundu: ${safeStr(possibleSource).slice(0,180)}`);
+      findings.push("Dosyada kaynak/kimlik benzeri bir alan bulundu; bu her zaman indirme URL’si değildir ama iz sürmede yardımcı olabilir.");
+    } else {
+      findings.push("Dosyada indirme URL’si/website kaynağı gibi doğrudan bir alan bulunmadı (çoğu görselde zaten olmaz).");
+    }
+
+    return { findings, signals, strippedScore, socialHits };
+  }
+
+  function buildAIAnalysis(meta){
+    const signals = [];
+    const findings = [];
+
+    const make = pickFirst(meta, ["Make", "Model"]);
+    const dtOriginal = pickFirst(meta, ["DateTimeOriginal", "CreateDate", "xmp:CreateDate"]);
+    const software = pickFirst(meta, ["Software", "ProcessingSoftware", "CreatorTool", "xmp:CreatorTool"]);
+    const hasCamera = Boolean(make);
+    const hasGps = Boolean(meta.latitude || meta.longitude || meta.GPSLatitude || meta.GPSLongitude);
+    const haystack = (safeStr(software) + "\n" + flattenStrings(meta)).slice(0, 200000);
+
+    const aiHits = [];
+    for (const h of AI_TOOL_HINTS){
+      if (textMatchesAny(haystack, h.patterns)){
+        aiHits.push(h.name);
+      }
+    }
+
+    let aiScore = 0;
+    
+    if (aiHits.length){
+      aiScore += 0.70; // Artırıldı
+      signals.push(`AI araç izleri: ${aiHits.join(", ")}`);
+      findings.push(`Metadata içeriğinde şu araç/anahtar kelimeler geçti: ${aiHits.join(", ")}. Bu, yapay zekâ ile üretilmiş veya AI tabanlı bir edit süreci görmüş olabileceğini gösterir.`);
+    }
+
+    const aiKeywords = /generated|synthetic|ai[- ]?generated|machine[- ]?learning|neural|deep[- ]?learning|gan|diffusion|prompt|text[- ]?to[- ]?image|artificial intelligence|computer[- ]?generated|cg[- ]?art|digital[- ]?art|algorithmic|procedural|rendered|3d[- ]?render|blender|maya|3ds[- ]?max|cinema[- ]?4d|houdini|unreal|unity|godot|watermark.*ai|ai.*watermark/i;
+    if (textMatchesAny(haystack, [aiKeywords])){
+      aiScore += 0.50; // Artırıldı
+      signals.push("Metadata'da AI/generate/synthetic/3D render/watermark gibi anahtar kelimeler tespit edildi.");
+      findings.push("Metadata içeriğinde 'generated', 'synthetic', 'AI', 'render', '3D', 'watermark' gibi kelimeler geçiyor. Bu, dosyanın yapay zekâ veya 3D programlarla üretilmiş olabileceğini gösterir.");
+    }
+
+    if (!hasCamera && software && !dtOriginal){
+      aiScore += 0.45; // Artırıldı - çok güçlü gösterge
+      signals.push("Kamera bilgisi yok + Yazılım var + Çekim tarihi yok (güçlü AI göstergesi)");
+      findings.push("Kamera bilgisi, çekim tarihi yok ama yazılım bilgisi var. Bu kombinasyon, dosyanın AI ile üretilmiş olma olasılığını çok artırır.");
+    } else if (!hasCamera && software){
+      aiScore += 0.30; // Artırıldı
+      signals.push("Kamera (Make/Model) yok ama Software/CreatorTool gibi alanlar var.");
+      findings.push("Kamera bilgisi olmaması tek başına AI demek değildir (sosyal medya da siler), fakat yazılım bilgisi varken kamera yoksa AI/edit ihtimali artabilir.");
+    } else if (!hasCamera && !dtOriginal){
+      // Sadece kamera yok + tarih yok (yazılım bilgisi de yok)
+      aiScore += 0.25;
+      signals.push("Kamera bilgisi yok + Çekim tarihi yok (AI olasılığı)");
+      findings.push("Kamera bilgisi ve çekim tarihi yok. Bu, dosyanın AI ile üretilmiş veya metadata'sının tamamen temizlenmiş olabileceğini gösterir.");
+    }
+
+    const keyExif = ["Make","Model","DateTimeOriginal","ExposureTime","FNumber","ISO","FocalLength"];
+    const presentExifCount = keyExif.filter(k => meta[k] !== undefined && meta[k] !== null && meta[k] !== "").length;
+    if (presentExifCount === 0){
+      aiScore += 0.40; // Artırıldı - çok güçlü gösterge
+      signals.push("Hiçbir kritik EXIF alanı bulunamadı (çok temiz metadata - güçlü AI göstergesi)");
+      findings.push("Metadata'da hiçbir kritik kamera bilgisi yok. Bu, dosyanın AI ile üretilmiş olma olasılığını çok artırır.");
+    } else if (presentExifCount <= 1){
+      aiScore += 0.25; // Artırıldı
+      signals.push(`Çok az EXIF alanı var (${presentExifCount}/7) - AI olasılığı`);
+      findings.push("Metadata'da çok az kamera bilgisi var. Bu, dosyanın AI ile üretilmiş veya metadata'sının silinmiş olabileceğini gösterir.");
+    } else if (presentExifCount <= 2){
+      aiScore += 0.15; // Yeni eklendi
+      signals.push(`Az EXIF alanı var (${presentExifCount}/7) - AI olasılığı`);
+      findings.push("Metadata'da az kamera bilgisi var. Bu, dosyanın AI ile üretilmiş olabileceğini gösterir.");
+    }
+
+    if (software){
+      const softwareStr = String(software).toLowerCase();
+      const isEditSoftware = /photoshop|lightroom|snapseed|vsco|picsart|capcut|gimp|paint|corel|affinity|pixelmator|fotor|beauty|retouch/i.test(softwareStr);
+      const is3DSoftware = /blender|maya|3ds[- ]?max|cinema[- ]?4d|houdini|zbrush|substance|unreal|unity|godot|sketchup|rhino|solidworks|autocad/i.test(softwareStr);
+      const isAISoftware = /chatgpt|gemini|dall|midjourney|stable|firefly|leonardo|runway|nightcafe|artbreeder|deepai|craiyon/i.test(softwareStr);
+      
+      if (isAISoftware){
+        aiScore += 0.35;
+        signals.push(`AI yazılımı tespit edildi: ${software}`);
+        findings.push(`Bu dosya ${software} ile oluşturulmuş görünüyor. Bu bir AI üretim aracıdır.`);
+      } else if (is3DSoftware){
+        aiScore += 0.30;
+        signals.push(`3D/Modelleme yazılımı tespit edildi: ${software}`);
+        findings.push(`Bu dosya ${software} ile oluşturulmuş görünüyor. Bu bir 3D modelleme/rendering programıdır, gerçek fotoğraf değildir.`);
+      } else if (isEditSoftware){
+        aiScore += 0.15;
+        signals.push(`Edit yazılımı izi: ${software}`);
+        findings.push(`Bu dosya ${software} ile işlenmiş. Bu bir edit uygulamasıdır; AI üretiminden farklı olabilir, sadece düzenleme anlamına gelebilir.`);
+      } else {
+        // Bilinmeyen yazılım - AI olasılığı
+        aiScore += 0.12;
+        signals.push(`Yazılım tespit edildi: ${software}`);
+        findings.push(`Dosyada yazılım bilgisi var ama kamera bilgisi yok. Bu, dosyanın bir programla oluşturulmuş olabileceğini gösterir.`);
+      }
+    }
+
+    if (!dtOriginal){
+      aiScore += 0.10;
+      signals.push("Çekim/Oluşturma tarihi yok - AI olasılığı");
+      findings.push("Çekim tarihi bilgisi yok. AI ile üretilen görsellerde genellikle gerçek çekim tarihi bulunmaz.");
+    }
+
+    const userComment = pickFirst(meta, ["UserComment", "Description", "ImageDescription", "xmp:Description", "xmp:Title", "Title", "Caption"]);
+    if (userComment && textMatchesAny(safeStr(userComment), [aiKeywords, /chatgpt|gemini|dall|midjourney|stable diffusion|prompt|seed|negative prompt/i])){
+      aiScore += 0.30;
+      signals.push("Açıklama/Yorum alanında AI ipuçları bulundu");
+      findings.push("Metadata'daki açıklama veya yorum alanında AI ile ilgili ipuçlar bulundu (prompt, seed, negative prompt gibi terimler AI üretimini gösterir).");
+    }
+
+    const xmpFields = Object.keys(meta).filter(k => k.toLowerCase().includes('xmp') || k.toLowerCase().includes('iptc'));
+    const xmpContent = xmpFields.map(k => safeStr(meta[k])).join('\n');
+    if (xmpContent && textMatchesAny(xmpContent, [aiKeywords, /chatgpt|gemini|dall|midjourney|stable diffusion|prompt|seed/i])){
+      aiScore += 0.20;
+      signals.push("XMP/IPTC alanlarında AI ipuçları bulundu");
+      findings.push("XMP veya IPTC metadata alanlarında AI ile ilgili ipuçlar bulundu.");
+    }
+
+    const totalMetaKeys = Object.keys(meta).filter(k => !k.startsWith("__")).length;
+    const hasOnlyBasicFields = totalMetaKeys <= 5 && !hasCamera && !dtOriginal && !hasGps;
+    if (hasOnlyBasicFields){
+      aiScore += 0.35; // Artırıldı
+      signals.push("Metadata çok temiz - sadece temel alanlar var (güçlü AI göstergesi)");
+      findings.push("Metadata'da sadece çok temel alanlar var (toplam " + totalMetaKeys + " alan, kamera yok, tarih yok, GPS yok). Bu, dosyanın AI ile üretilmiş olma olasılığını çok artırır.");
+    } else if (totalMetaKeys <= 10 && !hasCamera && !dtOriginal){
+      aiScore += 0.20; // Yeni eklendi
+      signals.push(`Metadata sınırlı (${totalMetaKeys} alan, kamera yok, tarih yok) - AI olasılığı`);
+      findings.push("Metadata'da sınırlı alan var ve kritik bilgiler eksik. Bu, dosyanın AI ile üretilmiş olabileceğini gösterir.");
+    }
+
+    const width = meta?.ExifImageWidth || meta?.ImageWidth || meta?.width;
+    const height = meta?.ExifImageHeight || meta?.ImageHeight || meta?.height;
+
+    if (width && height){
+      const isSquare = Math.abs(width - height) < 10;
+      const isAISize = (width === 512 && height === 512) || 
+                       (width === 1024 && height === 1024) || 
+                       (width === 1024 && height === 768) ||
+                       (width === 768 && height === 1024) ||
+                       (width === 1536 && height === 1536) ||
+                       (width === 2048 && height === 2048);
+      
+      if (isSquare && isAISize && !hasCamera){
+        aiScore += 0.15;
+        signals.push(`Standart AI boyutu tespit edildi: ${width}x${height} (kare format, kamera yok)`);
+        findings.push(`Görsel ${width}x${height} boyutunda ve kare formatında. Bu boyutlar AI üretim araçlarında yaygındır.`);
+      } else if (isSquare && !hasCamera && !dtOriginal){
+        aiScore += 0.10;
+        signals.push(`Kare format + kamera yok + tarih yok (AI olasılığı)`);
+        findings.push(`Görsel kare formatında ve kamera/tarih bilgisi yok. Bu kombinasyon AI üretimini gösterebilir.`);
+      }
+    }
+
+    const colorSpace = pickFirst(meta, ["ColorSpace", "ColorSpaceData", "ICCProfile", "ColorProfile"]);
+    if (colorSpace && !hasCamera){
+      const colorSpaceStr = safeStr(colorSpace).toLowerCase();
+      if (/srgb|rgb|adobe|prophoto/i.test(colorSpaceStr)){
+        // Normal color space ama kamera yok = şüpheli
+        aiScore += 0.05;
+      }
+    }
+
+    let combinationBonus = 0;
+    const aiIndicators = [
+      aiHits.length > 0,
+      textMatchesAny(haystack, [aiKeywords]),
+      !hasCamera && software && !dtOriginal,
+      presentExifCount === 0,
+      !dtOriginal,
+      hasOnlyBasicFields,
+      !hasCamera && !dtOriginal, // Yeni eklendi
+      presentExifCount <= 1 // Yeni eklendi
+    ];
+    const activeIndicators = aiIndicators.filter(Boolean).length;
+    if (activeIndicators >= 5){
+      combinationBonus = 0.30; // Artırıldı
+      signals.push(`Çok güçlü AI kombinasyonu: ${activeIndicators} farklı AI göstergesi tespit edildi`);
+      findings.push(`${activeIndicators} farklı AI göstergesi bir arada bulundu. Bu, dosyanın kesinlikle AI ile üretilmiş olduğunu gösterir.`);
+    } else if (activeIndicators >= 4){
+      combinationBonus = 0.25; // Artırıldı
+      signals.push(`Güçlü AI kombinasyonu: ${activeIndicators} farklı AI göstergesi tespit edildi`);
+      findings.push(`${activeIndicators} farklı AI göstergesi bir arada bulundu. Bu, dosyanın yüksek olasılıkla AI ile üretilmiş olduğunu gösterir.`);
+    } else if (activeIndicators >= 3){
+      combinationBonus = 0.18; // Artırıldı
+      signals.push(`Orta seviye AI kombinasyonu: ${activeIndicators} farklı AI göstergesi`);
+      findings.push(`${activeIndicators} farklı AI göstergesi bulundu. Bu, dosyanın AI ile üretilmiş olma olasılığını artırır.`);
+    } else if (activeIndicators >= 2){
+      combinationBonus = 0.10; // Artırıldı
+      signals.push(`AI kombinasyonu: ${activeIndicators} farklı AI göstergesi`);
+    }
+    aiScore += combinationBonus;
+
+    aiScore = Math.max(0, Math.min(1, aiScore));
+
+    const label = scoreToLabel(aiScore);
+    return { aiScore, label, findings, signals, aiHits };
+  }
+
+  function normalizeMeta(meta){
+
+    const width = meta?.ExifImageWidth || meta?.ImageWidth || meta?.width;
+    const height = meta?.ExifImageHeight || meta?.ImageHeight || meta?.height;
+
+    const out = {
+      ...meta,
+      __normalized: {
+        width, height,
+        make: pickFirst(meta, ["Make"]),
+        model: pickFirst(meta, ["Model"]),
+        lens: pickFirst(meta, ["LensModel", "Lens", "LensInfo"]),
+        software: pickFirst(meta, ["Software", "ProcessingSoftware", "CreatorTool", "xmp:CreatorTool"]),
+        dateOriginal: pickFirst(meta, ["DateTimeOriginal", "CreateDate", "xmp:CreateDate"]),
+        dateModify: pickFirst(meta, ["ModifyDate", "xmp:ModifyDate", "MetadataDate"]),
+        iso: pickFirst(meta, ["ISO"]),
+        fNumber: pickFirst(meta, ["FNumber"]),
+        exposureTime: pickFirst(meta, ["ExposureTime"]),
+        focalLength: pickFirst(meta, ["FocalLength"]),
+      }
+    };
+    return out;
+  }
+
+  function buildReport(file, metaRaw){
+    const meta = normalizeMeta(metaRaw || {});
+    const n = meta.__normalized;
+
+    const prov = buildProvenance(meta);
+    const ai = buildAIAnalysis(meta);
+
+    const metaPresent = Object.keys(meta).length > 0;
+    const hasGps = Boolean(meta.latitude || meta.longitude || meta.GPSLatitude || meta.GPSLongitude);
+    const hasCamera = Boolean(n.make || n.model);
+    const hasDates = Boolean(n.dateOriginal || n.dateModify);
+
+    const detailedEvidence = [];
+    
+    if (hasCamera) {
+      detailedEvidence.push({
+        category: "Kamera Bilgileri",
+        type: "good",
+        title: "Kamera Marka/Model Tespit Edildi",
+        details: [
+          `Marka: ${safeStr(n.make) || "—"}`,
+          `Model: ${safeStr(n.model) || "—"}`,
+          n.lens ? `Lens: ${safeStr(n.lens)}` : "Lens bilgisi yok",
+          n.iso ? `ISO: ${safeStr(n.iso)}` : null,
+          n.fNumber ? `Diyafram: f/${safeStr(n.fNumber)}` : null,
+          n.exposureTime ? `Enstantane: ${safeStr(n.exposureTime)}` : null,
+          n.focalLength ? `Odak Uzunluğu: ${safeStr(n.focalLength)}mm` : null,
+        ].filter(Boolean),
+        explanation: "Bu dosya gerçek bir kameradan çekilmiş görünüyor. Metadata'da kamera markası, modeli ve çekim parametreleri mevcut."
+      });
+    } else {
+      detailedEvidence.push({
+        category: "Kamera Bilgileri",
+        type: "warn",
+        title: "Kamera Bilgisi Bulunamadı",
+        details: [
+          "Make/Model alanları boş",
+          "Lens bilgisi yok",
+          "Çekim parametreleri (ISO, diyafram, enstantane) eksik"
+        ],
+        explanation: "Kamera bilgisinin olmaması, dosyanın sosyal medya üzerinden geçmiş olabileceğini (metadata silinmiş) veya AI/edit sürecinden geçmiş olabileceğini gösterir."
+      });
+    }
+
+    if (hasDates) {
+      detailedEvidence.push({
+        category: "Tarih Bilgileri",
+        type: "good",
+        title: "Tarih/Çekim Zamanı Tespit Edildi",
+        details: [
+          n.dateOriginal ? `Çekim/Oluşturma: ${fmtDate(n.dateOriginal)}` : "Çekim tarihi yok",
+          n.dateModify ? `Son Değiştirme: ${fmtDate(n.dateModify)}` : "Değiştirme tarihi yok",
+          n.dateOriginal && n.dateModify ? 
+            `Fark: ${Math.round((new Date(n.dateModify) - new Date(n.dateOriginal)) / (1000 * 60 * 60 * 24))} gün` : null
+        ].filter(Boolean),
+        explanation: "Tarih bilgileri dosyanın ne zaman oluşturulduğunu ve son ne zaman değiştirildiğini gösterir."
+      });
+    } else {
+      detailedEvidence.push({
+        category: "Tarih Bilgileri",
+        type: "warn",
+        title: "Tarih Bilgisi Bulunamadı",
+        details: ["DateTimeOriginal yok", "ModifyDate yok"],
+        explanation: "Tarih bilgisinin olmaması, dosyanın metadata'sının silinmiş veya temizlenmiş olabileceğini gösterir."
+      });
+    }
+
+    if (hasGps) {
+      const lat = meta.latitude ?? meta.GPSLatitude;
+      const lon = meta.longitude ?? meta.GPSLongitude;
+      const latN = (typeof lat === "number") ? lat : undefined;
+      const lonN = (typeof lon === "number") ? lon : undefined;
+      detailedEvidence.push({
+        category: "Konum Bilgisi",
+        type: "warn",
+        title: "GPS Koordinatları Tespit Edildi",
+        details: [
+          `Enlem: ${safeStr(lat)}`,
+          `Boylam: ${safeStr(lon)}`,
+          latN !== undefined && lonN !== undefined ? 
+            `Harita: https://www.google.com/maps?q=${latN},${lonN}` : null,
+          meta.altitude ? `Rakım: ${safeStr(meta.altitude)}m` : null
+        ].filter(Boolean),
+        explanation: "⚠️ DİKKAT: Bu dosya GPS koordinatları içeriyor. Bu, fotoğrafın çekildiği konumu gösterir. Gizlilik açısından dikkatli olun."
+      });
+    } else {
+      detailedEvidence.push({
+        category: "Konum Bilgisi",
+        type: "good",
+        title: "GPS Bilgisi Yok",
+        details: ["GPS koordinatları bulunamadı"],
+        explanation: "GPS bilgisi olmaması normaldir; çoğu kamera ve platform GPS'i kapalı tutar veya paylaşımda siler."
+      });
+    }
+
+    if (n.software) {
+      const isSocial = prov.socialHits.length > 0;
+      const isAI = ai.aiHits.length > 0;
+      const isEdit = /photoshop|lightroom|snapseed|vsco|picsart|capcut/i.test(String(n.software));
+      
+      detailedEvidence.push({
+        category: "Yazılım/İşleme",
+        type: isSocial || isAI ? "warn" : "good",
+        title: `Yazılım Tespit Edildi: ${safeStr(n.software)}`,
+        details: [
+          isSocial ? `Platform izi: ${prov.socialHits.join(", ")}` : null,
+          isAI ? `AI araç izi: ${ai.aiHits.join(", ")}` : null,
+          isEdit ? "Edit uygulaması tespit edildi" : null,
+          `CreatorTool: ${safeStr(n.software)}`
+        ].filter(Boolean),
+        explanation: isSocial 
+          ? `Bu dosya ${prov.socialHits.join(", ")} üzerinden geçmiş olabilir. Sosyal medya platformları genellikle metadata'yı siler veya azaltır.`
+          : isAI
+          ? `Metadata'da AI araç izleri bulundu. Bu, dosyanın yapay zekâ ile üretilmiş veya AI tabanlı bir edit sürecinden geçmiş olabileceğini gösterir.`
+          : isEdit
+          ? "Bu dosya bir edit uygulamasıyla işlenmiş. Bu, AI üretiminden farklı olabilir; sadece düzenleme anlamına gelebilir."
+          : "Dosya bir yazılım tarafından işlenmiş veya oluşturulmuş."
+      });
+    } else {
+      detailedEvidence.push({
+        category: "Yazılım/İşleme",
+        type: "good",
+        title: "Yazılım Bilgisi Yok",
+        details: ["Software/CreatorTool alanları boş"],
+        explanation: "Yazılım bilgisinin olmaması, dosyanın doğrudan kameradan gelmiş olabileceğini gösterir (işlenmemiş)."
+      });
+    }
+
+    const keyExif = ["Make","Model","LensModel","DateTimeOriginal","ExposureTime","FNumber","ISO","FocalLength"];
+    const presentExifCount = keyExif.filter(k => meta[k] !== undefined && meta[k] !== null && meta[k] !== "").length;
+    const totalMetaKeys = Object.keys(meta).filter(k => !k.startsWith("__")).length;
+    
+    detailedEvidence.push({
+      category: "Metadata Bütünlüğü",
+      type: presentExifCount >= 5 ? "good" : presentExifCount >= 2 ? "warn" : "bad",
+      title: `Metadata Durumu: ${presentExifCount}/8 Kritik Alan Mevcut`,
+      details: [
+        `Kritik EXIF alanları: ${presentExifCount}/8`,
+        `Toplam metadata alanı: ${totalMetaKeys}`,
+        `GPS: ${hasGps ? "Var" : "Yok"}`,
+        `Kamera bilgisi: ${hasCamera ? "Var" : "Yok"}`,
+        `Tarih bilgisi: ${hasDates ? "Var" : "Yok"}`,
+        `Yazılım bilgisi: ${n.software ? "Var" : "Yok"}`
+      ],
+      explanation: presentExifCount >= 5
+        ? "Metadata oldukça eksiksiz görünüyor. Dosya muhtemelen doğrudan kameradan gelmiş veya az işlenmiş."
+        : presentExifCount >= 2
+        ? "Metadata kısmen mevcut. Dosya bir işleme sürecinden geçmiş olabilir."
+        : "Metadata çok sınırlı. Bu, dosyanın sosyal medya üzerinden geçmiş (metadata silinmiş) veya AI/edit sürecinden geçmiş olabileceğini gösterir."
+    });
+
+    const possibleSource = pickFirst(meta, [
+      "Source", "xmp:Source", "dc:source", "xmpRights:WebStatement", "WebStatement",
+      "URL", "CreatorURL", "xmp:Identifier", "DocumentID", "InstanceID"
+    ]);
+    
+    if (possibleSource) {
+      detailedEvidence.push({
+        category: "Kaynak İpuçları",
+        type: "good",
+        title: "Kaynak/Kimlik Alanı Bulundu",
+        details: [
+          `Değer: ${safeStr(possibleSource).slice(0,200)}`,
+          `Alan adı: ${Object.keys(meta).find(k => meta[k] === possibleSource) || "Bilinmiyor"}`
+        ],
+        explanation: "Dosyada kaynak/kimlik benzeri bir alan bulundu. Bu her zaman indirme URL'si değildir ama iz sürmede yardımcı olabilir."
+      });
+    } else {
+      detailedEvidence.push({
+        category: "Kaynak İpuçları",
+        type: "warn",
+        title: "Doğrudan Kaynak Bilgisi Yok",
+        details: [
+          "Source/URL alanları bulunamadı",
+          "DocumentID/InstanceID yok"
+        ],
+        explanation: "Dosyada indirme URL'si/website kaynağı gibi doğrudan bir alan bulunmadı. Bu normaldir; çoğu görselde bu bilgi metadata'da yer almaz."
+      });
+    }
+
+    detailedEvidence.push({
+      category: "Olasılık Analizi",
+      type: ai.aiScore >= 0.45 ? "bad" : prov.strippedScore >= 0.45 ? "warn" : "good",
+      title: "Üretim/Kaynak Olasılıkları",
+      details: [
+        `AI üretimi olasılığı: ${(ai.aiScore * 100).toFixed(0)}% (${ai.label.label})`,
+        `Sosyal medya/metadata silinmiş olasılığı: ${(prov.strippedScore * 100).toFixed(0)}% (${scoreToLabel(prov.strippedScore).label})`,
+        ai.aiHits.length > 0 ? `Tespit edilen AI araçları: ${ai.aiHits.join(", ")}` : null,
+        prov.socialHits.length > 0 ? `Tespit edilen platformlar: ${prov.socialHits.join(", ")}` : null
+      ].filter(Boolean),
+      explanation: "Bu skorlar, metadata içeriğine ve heuristik kurallara dayanarak hesaplanır. Kesin sonuç değildir, olasılık gösterir."
+    });
+
+    const overallSignals = [
+      ...prov.signals.map(s => ({type:"provenance", text:s})),
+      ...ai.signals.map(s => ({type:"ai", text:s})),
+    ];
+
+    // Kategorize edilmiş bulgular
+    const findings = [];
+    
+    findings.push({
+      category: "📋 Genel Özet",
+      type: metaPresent ? "good" : "warn",
+      items: [
+        metaPresent 
+          ? `✅ Metadata başarıyla okundu (${Object.keys(meta).filter(k => !k.startsWith("__")).length} alan tespit edildi)`
+          : "⚠️ Metadata okunamadı veya dosyada metadata yok",
+        file ? `📁 Dosya: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)` : "📁 Dosya bilgisi yok",
+        (n.width && n.height) ? `📐 Boyut: ${n.width} × ${n.height} piksel` : "📐 Boyut bilgisi yok"
+      ]
+    });
+
+    findings.push({
+      category: "📷 Kamera Bilgileri",
+      type: hasCamera ? "good" : "warn",
+      items: hasCamera ? [
+        `✅ Marka: ${safeStr(n.make) || "—"}`,
+        `✅ Model: ${safeStr(n.model) || "—"}`,
+        n.lens ? `✅ Lens: ${safeStr(n.lens)}` : "⚠️ Lens bilgisi yok",
+        n.iso ? `📊 ISO: ${safeStr(n.iso)}` : null,
+        n.fNumber ? `📊 Diyafram: f/${safeStr(n.fNumber)}` : null,
+        n.exposureTime ? `📊 Enstantane: ${safeStr(n.exposureTime)}` : null,
+        n.focalLength ? `📊 Odak: ${safeStr(n.focalLength)}mm` : null
+      ].filter(Boolean) : [
+        "⚠️ Kamera (Make/Model) bilgisi bulunamadı",
+        "💡 Bu durum, dosyanın sosyal medya üzerinden geçmiş olabileceğini (metadata silinmiş) veya AI/edit sürecinden geçmiş olabileceğini gösterir"
+      ]
+    });
+
+    findings.push({
+      category: "📅 Tarih Bilgileri",
+      type: hasDates ? "good" : "warn",
+      items: hasDates ? [
+        n.dateOriginal ? `✅ Çekim/Oluşturma: ${fmtDate(n.dateOriginal)}` : "⚠️ Çekim tarihi yok",
+        n.dateModify ? `📝 Son Değiştirme: ${fmtDate(n.dateModify)}` : "⚠️ Değiştirme tarihi yok",
+        n.dateOriginal && n.dateModify ? 
+          `⏱️ Fark: ${Math.round((new Date(n.dateModify) - new Date(n.dateOriginal)) / (1000 * 60 * 60 * 24))} gün` : null
+      ].filter(Boolean) : [
+        "⚠️ Tarih alanları bulunamadı veya okunamadı",
+        "💡 Bu, dosyanın metadata'sının silinmiş veya temizlenmiş olabileceğini gösterir"
+      ]
+    });
+
+    if (hasGps){
+      const lat = meta.latitude ?? meta.GPSLatitude;
+      const lon = meta.longitude ?? meta.GPSLongitude;
+      const latN = (typeof lat === "number") ? lat : undefined;
+      const lonN = (typeof lon === "number") ? lon : undefined;
+      findings.push({
+        category: "📍 Konum Bilgisi (GPS)",
+        type: "warn",
+        items: [
+          `⚠️ GPS koordinatları tespit edildi`,
+          `🌍 Enlem: ${safeStr(lat)}`,
+          `🌍 Boylam: ${safeStr(lon)}`,
+          latN !== undefined && lonN !== undefined ? 
+            `🗺️ Harita: https://www.google.com/maps?q=${latN},${lonN}` : null,
+          meta.altitude ? `⛰️ Rakım: ${safeStr(meta.altitude)}m` : null,
+          "🔒 DİKKAT: Bu dosya konum bilgisi içeriyor. Gizlilik açısından dikkatli olun."
+        ].filter(Boolean)
+      });
+    } else {
+      findings.push({
+        category: "📍 Konum Bilgisi (GPS)",
+        type: "good",
+        items: [
+          "✅ GPS bilgisi yok",
+          "💡 Bu normaldir; çoğu kamera ve platform GPS'i kapalı tutar veya paylaşımda siler"
+        ]
+      });
+    }
+
+    if (n.software) {
+      const isSocial = prov.socialHits.length > 0;
+      const isAI = ai.aiHits.length > 0;
+      findings.push({
+        category: "💻 Yazılım/İşleme",
+        type: isSocial || isAI ? "warn" : "good",
+        items: [
+          `📝 Yazılım: ${safeStr(n.software)}`,
+          isSocial ? `⚠️ Platform izi tespit edildi: ${prov.socialHits.join(", ")}` : null,
+          isAI ? `🤖 AI araç izi tespit edildi: ${ai.aiHits.join(", ")}` : null,
+          isSocial ? "💡 Bu dosya sosyal medya üzerinden geçmiş olabilir. Platformlar genellikle metadata'yı siler veya azaltır." : 
+          isAI ? "💡 Metadata'da AI araç izleri bulundu. Bu, dosyanın yapay zekâ ile üretilmiş veya AI tabanlı bir edit sürecinden geçmiş olabileceğini gösterir." :
+          "💡 Dosya bir yazılım tarafından işlenmiş veya oluşturulmuş."
+        ].filter(Boolean)
+      });
+    } else {
+      findings.push({
+        category: "💻 Yazılım/İşleme",
+        type: "good",
+        items: [
+          "✅ Yazılım bilgisi yok",
+          "💡 Bu, dosyanın doğrudan kameradan gelmiş olabileceğini gösterir (işlenmemiş)"
+        ]
+      });
+    }
+
+    const presentExifCountForFindings = keyExif.filter(k => meta[k] !== undefined && meta[k] !== null && meta[k] !== "").length;
+    findings.push({
+      category: "🔍 Metadata Bütünlüğü",
+      type: presentExifCountForFindings >= 5 ? "good" : presentExifCountForFindings >= 2 ? "warn" : "bad",
+      items: [
+        `📊 Kritik EXIF alanları: ${presentExifCountForFindings}/8`,
+        presentExifCountForFindings >= 5 
+          ? "✅ Metadata oldukça eksiksiz görünüyor. Dosya muhtemelen doğrudan kameradan gelmiş veya az işlenmiş."
+          : presentExifCountForFindings >= 2
+          ? "⚠️ Metadata kısmen mevcut. Dosya bir işleme sürecinden geçmiş olabilir."
+          : "❌ Metadata çok sınırlı. Bu, dosyanın sosyal medya üzerinden geçmiş (metadata silinmiş) veya AI/edit sürecinden geçmiş olabileceğini gösterir."
+      ]
+    });
+
+    findings.push({
+      category: "📈 Olasılık Analizi",
+      type: ai.aiScore >= 0.45 ? "bad" : prov.strippedScore >= 0.45 ? "warn" : "good",
+      items: [
+        `🤖 AI üretimi olasılığı: ${(ai.aiScore * 100).toFixed(0)}% (${ai.label.label})`,
+        `📱 Sosyal medya/metadata silinmiş olasılığı: ${(prov.strippedScore * 100).toFixed(0)}% (${scoreToLabel(prov.strippedScore).label})`,
+        ai.aiHits.length > 0 ? `🔍 Tespit edilen AI araçları: ${ai.aiHits.join(", ")}` : null,
+        prov.socialHits.length > 0 ? `🔍 Tespit edilen platformlar: ${prov.socialHits.join(", ")}` : null,
+        "💡 Bu skorlar, metadata içeriğine ve heuristik kurallara dayanarak hesaplanır. Kesin sonuç değildir, olasılık gösterir."
+      ].filter(Boolean)
+    });
+
+    findings.push({
+      category: "ℹ️ Önemli Notlar",
+      type: "good",
+      items: [
+        "📌 Bu rapor, dosyanın içindeki metadata ve mantıksal ipuçlarına dayanır.",
+        "📌 Kesin kaynak/üretim yöntemi bazı durumlarda metadata yoksa doğrulanamaz.",
+        "📌 Daha detaylı bilgi için 'Kanıtlar' sekmesini inceleyin."
+      ]
+    });
+
+    const badges = [];
+    badges.push({ text: metaPresent ? "Metadata okundu" : "Metadata yok/okunamadı", kind: metaPresent ? "good":"warn" });
+    badges.push({ text: hasCamera ? "Kamera izi var" : "Kamera izi yok", kind: hasCamera ? "good":"warn" });
+    badges.push({ text: hasGps ? "GPS var" : "GPS yok", kind: hasGps ? "warn":"pill" });
+    if (prov.socialHits.length) badges.push({ text: `Platform izi: ${prov.socialHits[0]}${prov.socialHits.length>1 ? ` +${prov.socialHits.length-1}`:""}`, kind:"warn" });
+    badges.push({ text: `AI: ${ai.label.label}`, kind: ai.label.kind });
+
+    const detail = [
+      {k:"Dosya adı", v: file?.name ?? "—"},
+      {k:"Boyut", v: file ? `${(file.size/1024/1024).toFixed(2)} MB` : "—"},
+      {k:"Tür (MIME)", v: file?.type ?? "—"},
+      {k:"Genişlik × Yükseklik", v: (n.width && n.height) ? `${n.width} × ${n.height}` : "—"},
+      {k:"Make / Model", v: [n.make, n.model].filter(Boolean).join(" ") || "—"},
+      {k:"Lens", v: safeStr(n.lens) || "—"},
+      {k:"ISO", v: safeStr(n.iso) || "—"},
+      {k:"Diyafram (FNumber)", v: safeStr(n.fNumber) || "—"},
+      {k:"Enstantane", v: safeStr(n.exposureTime) || "—"},
+      {k:"Odak (FocalLength)", v: safeStr(n.focalLength) || "—"},
+      {k:"Software / CreatorTool", v: safeStr(n.software) || "—"},
+      {k:"Create/Original Date", v: fmtDate(n.dateOriginal) || "—"},
+      {k:"Modify/Metadata Date", v: fmtDate(n.dateModify) || "—"},
+    ];
+
+    let gpsText = "GPS verisi yok.";
+    if (hasGps){
+      const lat = meta.latitude ?? meta.GPSLatitude;
+      const lon = meta.longitude ?? meta.GPSLongitude;
+      const latN = (typeof lat === "number") ? lat : undefined;
+      const lonN = (typeof lon === "number") ? lon : undefined;
+      gpsText = `Koordinatlar: ${safeStr(lat)}, ${safeStr(lon)}`;
+      if (latN !== undefined && lonN !== undefined){
+        const maps = `https://www.google.com/maps?q=${latN},${lonN}`;
+        gpsText += `\nHarita: ${maps}`;
+      }
+    }
+
+    const provLabel = scoreToLabel(prov.strippedScore);
+    let provText = `Sosyal medya/yeniden-encode (metadata silinmiş) olasılığı: ${provLabel.label} (skor: ${(prov.strippedScore*100).toFixed(0)}%).`;
+    if (prov.socialHits.length){
+      provText += `\nPlatform izleri: ${prov.socialHits.join(", ")}.`;
+    } else {
+      provText += `\nPlatform adı doğrudan geçmiyor; bu normal (çoğu dosya platform adını yazmaz).`;
+    }
+    provText += `\nKesin indirme kaynağı (URL/site) çoğu görselde bulunmaz.`;
+
+    let aiText = `AI üretimi olasılığı: ${ai.label.label} (skor: ${(ai.aiScore*100).toFixed(0)}%).`;
+    if (ai.aiHits.length){
+      aiText += `\nBulunan AI anahtar kelimeleri/araç izleri: ${ai.aiHits.join(", ")}.`;
+    } else {
+      aiText += `\nDoğrudan AI aracı ismi geçmiyor; bu, AI olmadığı anlamına gelmeyebilir (metadata silinmiş olabilir).`;
+    }
+
+    return {
+      meta,
+      findings,
+      overallSignals,
+      detailedEvidence,
+      badges,
+      detail,
+      gpsText,
+      provText,
+      aiText,
+      scores: {
+        ai: ai.aiScore,
+        stripped: prov.strippedScore
+      },
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  function render(){
+  
+    ui.clear.disabled = !state.file;
+    ui.dlJson.disabled = !state.report;
+    ui.dlHtml.disabled = !state.report;
+
+    if (!state.file){
+      ui.preview.removeAttribute("src");
+      ui.preview.style.display = "none";
+    } else {
+      ui.preview.style.display = "block";
+    }
+
+    ui.badges.innerHTML = "";
+    ui.summary.innerHTML = "";
+    ui.summaryText.textContent = "";
+    ui.findings.innerHTML = "";
+    ui.signals.innerHTML = "";
+    ui.raw.textContent = "";
+    ui.detail.innerHTML = "";
+    ui.gps.textContent = "";
+    ui.provenance.textContent = "";
+    ui.ai.textContent = "";
+
+    if (!state.report) return;
+
+    for (const b of state.report.badges){
+      ui.badges.appendChild(createPill(b.text, b.kind));
+    }
+
+    const meta = state.report.meta;
+    const n = meta.__normalized;
+    setKV(ui.summary, [
+      {k:"Kamera", v: [n.make, n.model].filter(Boolean).join(" ") || "—"},
+      {k:"Yazılım", v: safeStr(n.software) || "—"},
+      {k:"Çekim/Oluşturma", v: fmtDate(n.dateOriginal) || "—"},
+      {k:"Boyut", v: (n.width && n.height) ? `${n.width} × ${n.height}` : "—"},
+    ]);
+
+    ui.summaryText.textContent =
+      "Bu özet ve skorlar, dosyanın içindeki metadata + heuristik kurallara göre hesaplanır. “Kesin kaynak” yerine, hangi alanların ipucu verdiğini ‘Kanıtlar’ sekmesinde görebilirsin.";
+
+    // Kategorize edilmiş bulgular
+    ui.findings.innerHTML = "";
+    if (state.report.findings && state.report.findings.length > 0) {
+      for (const finding of state.report.findings) {
+        if (typeof finding === "string") {
+          // Eski format (string) - geriye dönük uyumluluk
+          const li = document.createElement("li");
+          li.textContent = finding;
+          ui.findings.appendChild(li);
+        } else if (finding && typeof finding === "object") {
+          // Yeni format (object) - kategorize edilmiş
+          const card = document.createElement("div");
+          card.style.cssText = "margin: 16px 0; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.02);";
+          
+          if (finding.category) {
+            const category = document.createElement("div");
+            category.style.cssText = `font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text);`;
+            category.textContent = finding.category;
+            card.appendChild(category);
+          }
+          
+          if (finding.items && Array.isArray(finding.items) && finding.items.length > 0) {
+            const itemsList = document.createElement("ul");
+            itemsList.style.cssText = "margin: 0; padding-left: 20px; font-size: 12px; line-height: 1.8; color: var(--text); list-style-type: none;";
+            for (const item of finding.items) {
+              if (item) { // null/undefined kontrolü
+                const li = document.createElement("li");
+                li.style.cssText = "margin: 4px 0;";
+                li.textContent = String(item);
+                itemsList.appendChild(li);
+              }
+            }
+            card.appendChild(itemsList);
+          }
+          
+          ui.findings.appendChild(card);
+        } else {
+          // Beklenmeyen format - güvenli fallback
+          const li = document.createElement("li");
+          li.textContent = String(finding);
+          ui.findings.appendChild(li);
+        }
+      }
+    }
+
+    // Detaylı kanıtlar
+    ui.signals.innerHTML = "";
+    if (state.report.detailedEvidence && Array.isArray(state.report.detailedEvidence) && state.report.detailedEvidence.length > 0) {
+      for (const evidence of state.report.detailedEvidence) {
+        if (!evidence || typeof evidence !== "object") continue;
+        
+        const card = document.createElement("div");
+        card.style.cssText = "margin: 16px 0; padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.02);";
+        
+        if (evidence.category) {
+          const category = document.createElement("div");
+          category.style.cssText = "font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;";
+          category.textContent = evidence.category;
+          card.appendChild(category);
+        }
+        
+        if (evidence.title) {
+          const title = document.createElement("div");
+          title.style.cssText = `font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text);`;
+          title.textContent = evidence.title;
+          card.appendChild(title);
+        }
+        
+        if (evidence.details && Array.isArray(evidence.details) && evidence.details.length > 0) {
+          const detailsList = document.createElement("ul");
+          detailsList.style.cssText = "margin: 8px 0; padding-left: 20px; font-size: 12px; line-height: 1.6; color: var(--muted);";
+          for (const detail of evidence.details) {
+            if (detail) {
+              const li = document.createElement("li");
+              li.textContent = String(detail);
+              detailsList.appendChild(li);
+            }
+          }
+          card.appendChild(detailsList);
+        }
+        
+        if (evidence.explanation) {
+          const explanation = document.createElement("div");
+          explanation.style.cssText = `margin-top: 10px; padding: 10px; border-radius: 8px; font-size: 12px; line-height: 1.5; 
+            background: ${evidence.type === "good" ? "rgba(52,211,153,.08)" : evidence.type === "warn" ? "rgba(251,191,36,.08)" : "rgba(251,113,133,.08)"};
+            border: 1px solid ${evidence.type === "good" ? "rgba(52,211,153,.25)" : evidence.type === "warn" ? "rgba(251,191,36,.25)" : "rgba(251,113,133,.25)"};
+            color: ${evidence.type === "good" ? "rgba(52,211,153,.95)" : evidence.type === "warn" ? "rgba(251,191,36,.95)" : "rgba(251,113,133,.95)"};`;
+          explanation.textContent = evidence.explanation;
+          card.appendChild(explanation);
+        }
+        
+        ui.signals.appendChild(card);
+      }
+    } else if (state.report.overallSignals && state.report.overallSignals.length > 0) {
+	
+      for (const s of state.report.overallSignals) {
+        const li = document.createElement("li");
+        li.textContent = s.text || String(s);
+        ui.signals.appendChild(li);
+      }
+    } else {
+      const li = document.createElement("li");
+      li.textContent = "Belirgin bir ipucu yakalanmadı (metadata çok temiz olabilir).";
+      ui.signals.appendChild(li);
+    }
+
+    const raw = JSON.stringify(state.report.meta, (k,v)=>{
+      // büyük binary alanları vs kısaltma
+      if (typeof v === "string" && v.length > 4000) return v.slice(0,4000) + "…(kısaltıldı)";
+      return v;
+    }, 2);
+    ui.raw.textContent = raw;
+
+    setKV(ui.detail, state.report.detail);
+
+    ui.gps.textContent = state.report.gpsText;
+    ui.provenance.textContent = state.report.provText;
+    ui.ai.textContent = state.report.aiText;
+  }
+
+  async function analyzeFile(file){
+    state.file = file;
+    state.meta = null;
+    state.report = null;
+    render();
+
+    ui.preview.src = URL.createObjectURL(file);
+
+    try{
+
+      const meta = await exifr.parse(file, {
+        exif: true,
+        tiff: true,
+        xmp: true,
+        iptc: true,
+        icc: true,
+        gps: true,
+        thumbnails: true, 
+        reviveValues: true,
+        translateValues: true
+      });
+
+      const gps = await exifr.gps(file).catch(()=>null);
+
+      const merged = { ...(meta || {}) };
+      if (gps && typeof gps === "object"){
+        merged.latitude = gps.latitude;
+        merged.longitude = gps.longitude;
+        merged.altitude = gps.altitude;
+      }
+
+      state.meta = merged;
+      state.report = buildReport(file, merged);
+    } catch(err){
+      state.meta = { __error: String(err?.message || err) };
+      state.report = buildReport(file, state.meta);
+      state.report.findings.unshift("Metadata okuma sırasında hata oluştu: " + String(err?.message || err));
+    }
+
+    render();
+  }
+
+  ui.pick.addEventListener("click", ()=> ui.file.click());
+  ui.file.addEventListener("change", (e)=>{
+    const file = e.target.files?.[0];
+    if (file) analyzeFile(file);
+  });
+
+  ui.clear.addEventListener("click", ()=>{
+    if (ui.preview.src) URL.revokeObjectURL(ui.preview.src);
+    ui.file.value = "";
+    state.file = null; state.meta = null; state.report = null;
+    render();
+  });
+
+  ui.dlJson.addEventListener("click", ()=>{
+    if (!state.report) return;
+    
+    const formattedFindings = state.report.findings.map(f => {
+      if (typeof f === "string") return f;
+      if (f && typeof f === "object") {
+        return {
+          category: f.category || "",
+          type: f.type || "",
+          items: f.items || []
+        };
+      }
+      return String(f);
+    });
+    
+    const out = {
+      file: { name: state.file?.name, size: state.file?.size, type: state.file?.type },
+      createdAt: state.report.createdAt,
+      scores: state.report.scores,
+      findings: formattedFindings,
+      detailedEvidence: state.report.detailedEvidence || [],
+      signals: state.report.overallSignals || [],
+      metadata: state.report.meta,
+    };
+    dlBlob(`exif-report-${Date.now()}.json`, JSON.stringify(out, null, 2), "application/json");
+  });
+
+  ui.dlHtml.addEventListener("click", ()=>{
+    if (!state.report) return;
+    const safe = (s)=> String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+    
+    let findingsHtml = "";
+    if (state.report.findings && state.report.findings.length > 0) {
+      for (const f of state.report.findings) {
+        if (typeof f === "string") {
+          findingsHtml += `<li>${safe(f)}</li>`;
+        } else if (f && typeof f === "object") {
+          findingsHtml += `<li><strong>${safe(f.category || "")}</strong><ul>`;
+          if (f.items && Array.isArray(f.items)) {
+            for (const item of f.items) {
+              if (item) findingsHtml += `<li>${safe(String(item))}</li>`;
+            }
+          }
+          findingsHtml += `</ul></li>`;
+        }
+      }
+    }
+    
+    let signalsHtml = "";
+    if (state.report.detailedEvidence && state.report.detailedEvidence.length > 0) {
+      for (const ev of state.report.detailedEvidence) {
+        if (ev && typeof ev === "object") {
+          signalsHtml += `<li><strong>${safe(ev.category || "")}: ${safe(ev.title || "")}</strong>`;
+          if (ev.details && Array.isArray(ev.details) && ev.details.length > 0) {
+            signalsHtml += `<ul>`;
+            for (const detail of ev.details) {
+              if (detail) signalsHtml += `<li>${safe(String(detail))}</li>`;
+            }
+            signalsHtml += `</ul>`;
+          }
+          if (ev.explanation) {
+            signalsHtml += `<p style="margin-top:8px; padding:8px; background:#f0f0f0; border-radius:6px;">${safe(ev.explanation)}</p>`;
+          }
+          signalsHtml += `</li>`;
+        }
+      }
+    } else if (state.report.overallSignals && state.report.overallSignals.length > 0) {
+      for (const s of state.report.overallSignals) {
+        signalsHtml += `<li>${safe(s.text || String(s))}</li>`;
+      }
+    }
+    if (!signalsHtml) signalsHtml = "<li>Belirgin ipucu yok.</li>";
+    
+    const meta = safe(JSON.stringify(state.report.meta, null, 2));
+    const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>EXIF Raporu</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial; margin:24px; line-height:1.55}
+h1{margin:0 0 8px} .muted{color:#666}
+pre{background:#0b1020; color:#dbeafe; padding:14px; border-radius:12px; overflow:auto}
+.card{border:1px solid #ddd; border-radius:14px; padding:14px; margin:12px 0}
+ul{margin:8px 0; padding-left:20px}
+li{margin:4px 0}
+</style></head><body>
+<h1>EXIF / XMP / IPTC Raporu</h1>
+<div class="muted">Dosya: ${safe(state.file?.name ?? "—")} • Üretim: ${safe(state.report.createdAt)} • AI Skor: ${(state.report.scores.ai*100).toFixed(0)}% • Stripped Skor: ${(state.report.scores.stripped*100).toFixed(0)}%</div>
+<div class="card"><h2>Yorum & Bulgular</h2><ul>${findingsHtml || "<li>Bulgular bulunamadı.</li>"}</ul></div>
+<div class="card"><h2>Kanıtlar</h2><ul>${signalsHtml}</ul></div>
+<div class="card"><h2>Ham Metadata</h2><pre>${meta}</pre></div>
+</body></html>`;
+    dlBlob(`exif-report-${Date.now()}.html`, html, "text/html");
+  });
+
+  // Drag & drop
+  ui.drop.addEventListener("dragover", (e)=>{ e.preventDefault(); ui.drop.style.borderColor="rgba(96,165,250,.6)"; });
+  ui.drop.addEventListener("dragleave", ()=>{ ui.drop.style.borderColor="rgba(148,163,184,.35)"; });
+  ui.drop.addEventListener("drop", (e)=>{
+    e.preventDefault();
+    ui.drop.style.borderColor="rgba(148,163,184,.35)";
+    const file = e.dataTransfer?.files?.[0];
+    if (file) analyzeFile(file);
+  });
+
+  // Tabs
+  ui.tabs.addEventListener("click", (e)=>{
+    const t = e.target?.closest?.(".tab");
+    if (!t) return;
+    ui.tabs.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    const tab = t.dataset.tab;
+    $("tab-report").style.display = tab==="report" ? "" : "none";
+    $("tab-signals").style.display = tab==="signals" ? "" : "none";
+    $("tab-raw").style.display = tab==="raw" ? "" : "none";
+  });
+
+  render();
+</script>
+</body>
+</html>
