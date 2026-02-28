@@ -155,15 +155,6 @@ Program, aşağıdaki faktörlere göre AI olasılığını hesaplar:
 - Metadata analizi %100 doğru değildir
 - AI tespiti heuristik kurallara dayanır, kesin sonuç değildir
 
-## 🤝 Katkıda Bulunma
-
-Katkılarınızı bekliyoruz! Lütfen:
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'Add amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
 ## 📄 Lisans
 
 Bu proje açık kaynaklıdır. İstediğiniz gibi kullanabilir, değiştirebilir ve dağıtabilirsiniz.
@@ -171,9 +162,9 @@ Bu proje açık kaynaklıdır. İstediğiniz gibi kullanabilir, değiştirebilir
 ## 🙏 Teşekkürler
 
 - [Exifr](https://github.com/MikeKovarik/exifr) - Güçlü metadata okuma kütüphanesi
-- Tüm katkıda bulunanlar
 
 ---
 
 **Not**: Bu araç, metadata analizi yapar ve olasılık bazlı sonuçlar üretir. Kesin kaynak/üretim yöntemi bazı durumlarda metadata yoksa doğrulanamaz.
+
 
